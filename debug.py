@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import random
 from sqlalchemy import create_engine
+from models import Customer,Review,Restaurant
 from sqlalchemy.orm import sessionmaker
 import ipdb;
 
