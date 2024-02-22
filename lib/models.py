@@ -1,87 +1,97 @@
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
-from sqlalchemy.orm import relationship, sessionmaker
+
+from sqlalchemy import (create_engine, PrimaryKeyConstraint, Column, String, Integer,ForeignKey,Table)
+
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship,backref
 
-
-engine = create_engine('sqlite:///restaurants.db', echo=True)
-
-
-Session = sessionmaker(bind=engine)
-session = Session()
 
 Base = declarative_base()
+engine = create_engine('sqlite:///db/restaurants.db', echo=True)
 
+
+
+restaurant_user=Table(
+    #customers_users
+    'restaurant_users',
+    Base.metadata,
+    Column('restaurant_id',ForeignKey('restaurants.id'),primary_key=True),
+    Column('customer_id',ForeignKey('customers.id'),primary_key=True),
+     extend_existing=True,
+    
+)
 
 class Review(Base):
     __tablename__ = 'reviews'
-    id = Column(Integer, primary_key=True)
-    star_rating = Column(Integer)
-    restaurant_id = Column(Integer, ForeignKey('restaurants.id'))
-    customer_id = Column(Integer, ForeignKey('customers.id'))
+    
+    id = Column(Integer(), primary_key=True)
+    score = Column(Integer())
+    comment = Column(String())
+    star_rating = Column(Integer())
+    
+    restaurant_id = Column(Integer(), ForeignKey('restaurants.id'))
+    customer_id = Column(Integer(), ForeignKey('customers.id'))
+    
+    def __repr__(self):
+        return f'Review: {self.star_rating}'
 
-    restaurant = relationship("Restaurant", back_populates="reviews")
-    customer = relationship("Customer", back_populates="reviews")
-
-    def customer(self):
+    def get_customer(self):
+        """
+        Returns the Customer instance associated with this review.
+        """
         return self.customer
 
-    def restaurant(self):
+    def get_restaurant(self):
+        """
+        Returns the Restaurant instance associated with this review.
+        """
         return self.restaurant
-
-    def full_review(self):
-        return f"Review for {self.restaurant.name} by {self.customer.full_name()}: {self.star_rating} stars."
-
-
-class Restaurant(Base):
-    __tablename__ = 'restaurants'
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    price = Column(Integer)
-    reviews = relationship("Review", back_populates="restaurant")
-
-    def reviews(self):
-        return self.reviews
-
-    def customers(self):
-        return [review.customer for review in self.reviews]
-
-    @classmethod
-    def fanciest(cls):
-        return session.query(cls).order_by(cls.price.desc()).first()
-
-    def all_reviews(self):
-        return [review.full_review() for review in self.reviews]
-
 
 class Customer(Base):
     __tablename__ = 'customers'
-    id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    reviews = relationship("Review", back_populates="customer")
 
-    def reviews(self):
+    id = Column(Integer(), primary_key=True)
+    first_name = Column(String())
+    last_name = Column(String())
+    
+    reviews = relationship('Review', backref=backref('customer'))
+    restaurants = relationship('Restaurant', secondary=restaurant_user, back_populates='customers')
+
+    def __repr__(self):
+        return f'Customer: {self.first_name}'
+
+    def get_reviews(self):
+        """
+        Returns a collection of all the reviews that the Customer has left.
+        """
+        return self.reviews
+    
+    def get_restaurants(self):
+        """
+        Returns a collection of all the restaurants that the Customer has reviewed.
+        """
+        return self.restaurants
+
+class Restaurant(Base):
+    __tablename__ = 'restaurants'
+
+    id = Column(Integer(), primary_key=True)
+    name = Column(String())
+    price = Column(Integer())
+    
+    reviews = relationship('Review', backref=backref('restaurant'))
+    customers = relationship('Customer', secondary=restaurant_user, back_populates='restaurants')
+
+    def __repr__(self):
+        return f'Restaurant: {self.name}'
+
+    def get_reviews(self):
+        """
+        Returns a collection of all the reviews for the Restaurant.
+        """
         return self.reviews
 
-    def restaurants(self):
-        return [review.restaurant for review in self.reviews]
-
-    def full_name(self):
-        return f"{self.first_name} {self.last_name}"
-
-    def favorite_restaurant(self):
-        reviews = sorted(self.reviews, key=lambda x: x.star_rating, reverse=True)
-        return reviews[0].restaurant if reviews else None
-
-    def add_review(self, restaurant, rating):
-        review = Review(restaurant=restaurant, customer=self, star_rating=rating)
-        self.reviews.append(review)
-
-    def delete_reviews(self, restaurant):
-        for review in self.reviews:
-            if review.restaurant == restaurant:
-                self.reviews.remove(review)
-                session.delete(review)
-
-
-Base.metadata.create_all(engine)
+    def get_customers(self):
+        """
+        Returns a collection of all the customers who reviewed the Restaurant.
+        """
+        return self.customers

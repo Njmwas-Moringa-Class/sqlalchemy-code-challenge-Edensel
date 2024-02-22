@@ -6,15 +6,17 @@ from sqlalchemy.orm import sessionmaker
 from models import Restaurant, Review, Customer
 
 if __name__ == '__main__':
-    
+    # Create SQLAlchemy engine
     engine = create_engine('sqlite:///db/restaurants.db')
     
-   
+    # Bind the engine to a session
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    # Initialize Faker to generate fake data
     fake = Faker()
 
+    # Generate fake data for restaurants
     for i in range(50):
         restaurant = Restaurant(
             name=fake.unique.name(),
@@ -22,6 +24,7 @@ if __name__ == '__main__':
         )
         session.add(restaurant)
 
+    # Generate fake data for customers
     for i in range(25):
         customer = Customer(
             first_name=fake.name(),
@@ -29,8 +32,11 @@ if __name__ == '__main__':
         )
         session.add(customer)
 
+    # Commit the added restaurants and customers
     session.commit()
 
+
+    # Generate fake data for reviews
     for restaurant in session.query(Restaurant).all():
         for _ in range(random.randint(1, 5)):
             customer = random.choice(session.query(Customer).all())
@@ -43,5 +49,8 @@ if __name__ == '__main__':
             session.add(review)
 
 
+    # Commit the added reviews
     session.commit()
+
+    # Close the session
     session.close()
