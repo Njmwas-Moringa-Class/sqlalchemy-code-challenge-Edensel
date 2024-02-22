@@ -181,3 +181,13 @@ Review for {insert restaurant name} by {insert customer's full name}: {insert re
   "Review for {insert restaurant name} by {insert customer's full name}: {insert review star_rating} stars.",
 ]
 ```
+
+# Example
+session.query(Restaurant).first()
+
+session.query(Customer).all()
+
+restaurant = session.query(Restaurant).first()
+restaurant.get_reviews()
+
+
